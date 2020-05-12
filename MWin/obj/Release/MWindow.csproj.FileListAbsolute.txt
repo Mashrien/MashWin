@@ -1,0 +1,7 @@
+D:\Programming\VS2015 Projects\MWin\MWin\bin\Release\MWindow.dll
+D:\Programming\VS2015 Projects\MWin\MWin\bin\Release\MWindow.pdb
+D:\Programming\VS2015 Projects\MWin\MWin\obj\Release\MWindow.csproj.GenerateResource.Cache
+D:\Programming\VS2015 Projects\MWin\MWin\obj\Release\MWindow.dll
+D:\Programming\VS2015 Projects\MWin\MWin\obj\Release\MWindow.pdb
+D:\Programming\VS2015 Projects\MWin\MWin\obj\Release\MWindow.csprojResolveAssemblyReference.cache
+D:\Programming\VS2015 Projects\MWin\MWin\obj\Release\MashWin.MWindow.resources
