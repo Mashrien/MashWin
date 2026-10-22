@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -44,7 +44,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(false)]
         public bool VistaStyleGradientBackground {
             get; set;
             }
@@ -53,7 +53,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(false)]
         public bool InvertForeColorOnMouseDown {
             get; set;
             }
@@ -62,7 +62,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "WhiteSmoke")]
         public Color BackgroundColor {
             get; set;
             }
@@ -71,7 +71,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "WhiteSmoke")]
         public Color BackgroundColorAlt {
             get; set;
             }
@@ -80,7 +80,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "LightBlue")]
         public Color MouseOverBackColor {
             get; set;
             }
@@ -89,7 +89,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "LightBlue")]
         public Color MouseOverBackColorAlt {
             get; set;
             }
@@ -98,7 +98,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "Blue")]
         public Color MouseDownBackColor {
             get; set;
             }
@@ -107,7 +107,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "Blue")]
         public Color MouseDownBackColorAlt {
             get; set;
             }
@@ -116,7 +116,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "Gray")]
         public Color BorderColor {
             get; set;
             }
@@ -125,7 +125,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(int))]
+        [DefaultValue(1)]
         public int BorderThickness {
             get; set;
             }
@@ -134,7 +134,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(int))]
+        [DefaultValue(5)]
         public int CornerRadius {
             get; set;
             }
@@ -143,7 +143,7 @@ namespace MashWin {
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(ExtendedButtonSettings.RoundedCorners))]
+        [DefaultValue(ExtendedButtonSettings.RoundedCorners.All)]
         public ExtendedButtonSettings.RoundedCorners RoundCorners {
             get; set;
             }
@@ -160,10 +160,14 @@ namespace MashWin {
         private bool ForceMouseLeave;
         private Brush TextInvertedColor;
         private Brush TextColor;
+        private Color cachedTextColor;
+        private Color cachedInvertedColor;
 
         //private Color BackColor = Color.Black;
 
-        public Pen BorderPen = new Pen(Color.Goldenrod, 1);
+        // Preserve the public override, but only dispose the pen owned by this button.
+        private readonly Pen ownedBorderPen = new Pen(Color.Goldenrod, 1);
+        public Pen BorderPen;
 
         [Browsable(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
@@ -186,15 +190,22 @@ namespace MashWin {
         public bool isMoveOffDown = false;
 
         public RoundButton() {
+            BorderPen = ownedBorderPen;
             this.MouseLeave += RoundButton_MouseLeave;
             this.MouseEnter += RoundButton_MouseEnter;
             this.MouseMove += RoundButton_MouseMove;
             this.TextAlign = ContentAlignment.BottomRight;
-            this.Paint += RoundButton_Paint;
+            // OnPaint already handles rendering; avoid a recursive Paint -> OnPaint subscription.
             }
 
-        private void RoundButton_Paint(object sender, PaintEventArgs e) {
-            OnPaint(e);
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                // Cached text brushes and our original pen are owned drawing resources.
+                TextInvertedColor?.Dispose();
+                TextColor?.Dispose();
+                ownedBorderPen.Dispose();
+                }
+            base.Dispose(disposing);
             }
 
         private void RoundButton_MouseMove(object sender, MouseEventArgs e) {
@@ -211,6 +222,11 @@ namespace MashWin {
             }
 
         protected override void OnPaint(PaintEventArgs e) {
+            // A standalone button in the VS designer does not yet have an MWindow parent.
+            if (!(Parent is MWindow)) {
+                base.OnPaint(e);
+                return;
+                }
             this.Settings.BorderColor = ((MWindow)this.Parent).ExtendedSettings.BorderColor;
             this.Settings.BorderThickness = ((MWindow)this.Parent).ExtendedSettings.BorderThickness;
             BorderPen.Color = this.Settings.BorderColor;
@@ -220,9 +236,17 @@ namespace MashWin {
                 }
             Point MousePosition = PointToClient(Control.MousePosition);
 
-            if (TextInvertedColor == null) {
-                TextInvertedColor = new SolidBrush(InvertColor(this.Settings.MouseDownBackColor));
-                TextColor = new SolidBrush(this.ForeColor);
+            // Designer edits to either color must replace the corresponding cached brush.
+            Color invertedColor = InvertColor(Settings.MouseDownBackColor);
+            if (TextInvertedColor == null || cachedInvertedColor != invertedColor) {
+                TextInvertedColor?.Dispose();
+                TextInvertedColor = new SolidBrush(invertedColor);
+                cachedInvertedColor = invertedColor;
+                }
+            if (TextColor == null || cachedTextColor != ForeColor) {
+                TextColor?.Dispose();
+                TextColor = new SolidBrush(ForeColor);
+                cachedTextColor = ForeColor;
                 }
 
             if (ClientRectangle.Contains(MousePosition)) {
@@ -418,7 +442,8 @@ namespace MashWin {
                             g.FillPath(b, gp);
                             }
                         }
-                    retRegion = new Region(gp);
+                    // Painting callers do not need a Region. Allocate one only on request.
+                    retRegion = maskRegion ? new Region(gp) : null;
                     }
 
                 return retRegion;

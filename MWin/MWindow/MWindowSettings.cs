@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -32,121 +32,122 @@ namespace MashWin {
         Right,
         }
 
+    // Accurate default values let the WinForms designer reset and serialize settings.
     [TypeConverter(typeof(MashWindowSettingsConverter))]
     public class MWindowSettings {
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Image))]
+        [DefaultValue(null)]
         public Image Icon { get; set; }
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(true)]
         public bool MaximizeBox { get; set; } = true;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(true)]
         public bool Resizable { get; set; } = true;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(true)]
         public bool MinimizeBox { get; set; } = true;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(true)]
         public bool ExitBox { get; set; } = true;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(true)]
         public bool MenuSeparator { get; set; } = true;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "Gray")]
         public Color BorderColor { get; set; } = Color.Gray;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Color))]
+        [DefaultValue(typeof(Color), "Gray")]
         public Color SeparatorColor { get; set; } = Color.Gray;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(int))]
+        [DefaultValue(1)]
         public int BorderThickness { get; set; } = 1;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(int))]
+        [DefaultValue(1)]
         public int SeparatorThickness { get; set; } = 1;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(int))]
+        [DefaultValue(5)]
         public int CornerRadius { get; set;} = 5;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Font))]
+
         public Font TitleFont { get; set; } = new Font("Segoe UI", 9f);
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Boolean))]
+        [DefaultValue(true)]
         public bool ShowTitle { get; set; } = true;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Alignment))]
+        [DefaultValue(Alignment.Left)]
         public Alignment TitleAlignment { get; set; } = Alignment.Left;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Font))]
+
         public Font StatusBarFont { get; set; } = new Font("Segoe UI", 9f);
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Font))]
+        [DefaultValue("")]
         public string StatusBarText { get; set; } = "";
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Alignment))]
+        [DefaultValue(Alignment.Left)]
         public Alignment StatusBarAlignment { get; set; } = Alignment.Left;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(Boolean))]
+        [DefaultValue(false)]
         public bool StatusBarSeparator { get; set; } = false;
 
         [Browsable(true)]
         [NotifyParentProperty(true)]
         [EditorBrowsable(EditorBrowsableState.Always)]
-        [DefaultValue(typeof(bool))]
+        [DefaultValue(false)]
         public bool ShowSizeGrip { get; set; } = false;
 
         }

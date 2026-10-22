@@ -1,0 +1,16 @@
+<Project>
+  <!-- Use the embedding solution's output settings for both direct solution builds
+       and project references; otherwise Visual Studio looks in two different folders. -->
+  <PropertyGroup>
+    <MashWinParentBuildProps>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))</MashWinParentBuildProps>
+  </PropertyGroup>
+  <Import Project="$(MashWinParentBuildProps)" Condition="'$(MashWinParentBuildProps)' != ''" />
+  <!-- Standalone builds stay local; embedding hosts may supply a shared output root. -->
+  <PropertyGroup>
+    <MashWinBuildRoot Condition="'$(MNXBuildRoot)' != ''">$(MNXBuildRoot)</MashWinBuildRoot>
+    <MashWinBuildRoot Condition="'$(MashWinBuildRoot)' == ''">$(MSBuildThisFileDirectory)artifacts</MashWinBuildRoot>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildThisFileDirectory)artifacts/**</DefaultItemExcludes>
+    <BaseOutputPath>$(MashWinBuildRoot)/bin/$(MSBuildProjectName)/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MashWinBuildRoot)/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

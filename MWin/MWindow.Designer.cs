@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -30,6 +30,19 @@ namespace MashWin {
             if (disposing && (components != null)) {
                 components.Dispose();
                 }
+            if (disposing) {
+                // .NET port: release only drawing objects owned by this form.
+                IconImage?.Dispose();
+                ownedWindowIcon?.Dispose();
+                WindowGP?.Dispose();
+                AppBrushBackground?.Dispose();
+                AppBrushTitle?.Dispose();
+                AppPenBorder?.Dispose();
+                AppPenSeparator?.Dispose();
+                AppPenSizeGrip?.Dispose();
+                StatusTextAlignment?.Dispose();
+                TitleTextAlignment?.Dispose();
+                }
             base.Dispose(disposing);
             }
 
@@ -37,9 +50,9 @@ namespace MashWin {
 
         private void InitializeComponent() {
             this.SuspendLayout();
-            // 
+            //
             // MashWin
-            // 
+            //
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
             this.ClientSize = new System.Drawing.Size(64, 40);
             this.DoubleBuffered = true;

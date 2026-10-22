@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -16,6 +16,7 @@ namespace MashWin {
         #region members
 
         private Image IconImage;
+        private Icon ownedWindowIcon;
         private GraphicsPath WindowGP;
         private bool HasBeenResized;
         private Size LastSize;
@@ -92,7 +93,8 @@ namespace MashWin {
 
             if (Settings.ExitBox) {
 
-                RoundButton rbExit = new RoundButton();
+                // .NET port: assign caption controls to the fields used during resize/disposal.
+                rbExit = new RoundButton();
                 rbExit.Height = 20;
                 rbExit.Width = 30;
                 rbExit.Name = "rbExit";
@@ -112,7 +114,7 @@ namespace MashWin {
                 this.Controls.Add(rbExit);
                 }
             if (Settings.MaximizeBox) {
-                RoundButton rbMaximize = new RoundButton();
+                rbMaximize = new RoundButton();
                 rbMaximize.Height = 20;
                 rbMaximize.Width = 30;
                 rbMaximize.Name = "rbMaximize";
@@ -131,7 +133,7 @@ namespace MashWin {
                 this.Controls.Add(rbMaximize);
                 }
             if (Settings.MinimizeBox) {
-                RoundButton rbMinimize = new RoundButton();
+                rbMinimize = new RoundButton();
                 rbMinimize.Height = 20;
                 rbMinimize.Width = 30;
                 rbMinimize.Name = "rbMinimize";
@@ -156,29 +158,25 @@ namespace MashWin {
         #region wincontrols
         private void MoveButtons() {
 
-            if (Settings.ExitBox) {
-                if (!Settings.MaximizeBox && !Settings.MinimizeBox) {
-                    ((RoundButton)this.Controls["rbExit"]).ExtendedSettings.RoundCorners = ExtendedButtonSettings.RoundedCorners.Bottom;
-                    }
-                this.Controls["rbExit"].Top = Settings.BorderThickness-1;// (Settings.BorderThickness <= 1 ? 0 : 1);
-                this.Controls["rbExit"].Left = this.Width - (this.Settings.CornerRadius + this.Settings.BorderThickness) - 30;
-                } else {
-                this.Controls["rbExit"].Hide();
+            // Keep caption visibility reversible when ExtendedSettings is edited.
+            if (rbExit != null) {
+                rbExit.Visible = Settings.ExitBox;
+                rbExit.Top = Settings.BorderThickness - 1;
+                rbExit.Left = Width - (Settings.CornerRadius + Settings.BorderThickness) - 30;
+                rbExit.ExtendedSettings.RoundCorners = Settings.MaximizeBox || Settings.MinimizeBox
+                    ? ExtendedButtonSettings.RoundedCorners.BottomRight
+                    : ExtendedButtonSettings.RoundedCorners.Bottom;
                 }
-
-            if (Settings.MaximizeBox) {
-                this.Controls["rbMaximize"].Top = Settings.BorderThickness-1;// (Settings.BorderThickness <= 1 ? 0 : 1);
-                this.Controls["rbMaximize"].Left = this.Width - (this.Settings.CornerRadius + this.Settings.BorderThickness) - 59;
-                } else {
-                this.Controls["rbMaximize"].Hide();
+            if (rbMaximize != null) {
+                rbMaximize.Visible = Settings.MaximizeBox;
+                rbMaximize.Top = Settings.BorderThickness - 1;
+                rbMaximize.Left = Width - (Settings.CornerRadius + Settings.BorderThickness) - 59;
                 }
-
-            if (Settings.MinimizeBox) {
-                this.Controls["rbMinimize"].Top = Settings.BorderThickness-1;// (Settings.BorderThickness <= 1 ? 0 : 1);
-                int leftOffset = Settings.MaximizeBox ? 88 : 59; // move the offset right if there's no maximize button
-                this.Controls["rbMinimize"].Left = this.Width - (this.Settings.CornerRadius + this.Settings.BorderThickness) - leftOffset;
-                } else {
-                this.Controls["rbMinimize"].Hide();
+            if (rbMinimize != null) {
+                rbMinimize.Visible = Settings.MinimizeBox;
+                rbMinimize.Top = Settings.BorderThickness - 1;
+                int leftOffset = Settings.MaximizeBox ? 88 : 59;
+                rbMinimize.Left = Width - (Settings.CornerRadius + Settings.BorderThickness) - leftOffset;
                 }
 
             foreach (Control c in this.Controls) {
@@ -189,31 +187,46 @@ namespace MashWin {
             }
 
         protected void ForceIcoIcon() {
-            //BUG this needs to be fixed.. though it semi-works for now
-            if (this.Settings.Icon != null) {
-                IconImage = this.Settings.Icon;
-                Bitmap Cbitmap;
-                using (Cbitmap = new Bitmap(IconImage)) {
-                    //Cbitmap.MakeTransparent(Color.Transparent);
-                    System.IntPtr icH = Cbitmap.GetHicon();
-                    this.Icon = (Icon)Icon.FromHandle(icH).Clone();
-                    DestroyIcon(icH);
-                    }
-                } else {
-                IconImage = this.Icon.ToBitmap();
+            // Keep an owned bitmap for painting; never dispose a caller's image.
+            if (Settings.Icon != null) {
+                SetIcon(Settings.Icon);
+                }
+            else if (Icon != null) {
+                SetIcon(Icon);
                 }
             }
 
-        public void SetIcon(Icon i) {
-            IconImage = (Image)i.ToBitmap().Clone();
-            SrcRect = new Rectangle(0, 0, this.Icon.Width, this.Icon.Height);
-            ForceIcoIcon();
+        public void SetIcon(Icon icon) {
+            if (icon == null) {
+                throw new ArgumentNullException(nameof(icon));
+                }
+            using (Bitmap bitmap = icon.ToBitmap()) {
+                SetIcon(bitmap);
+                }
             }
 
-        public void SetIcon(Image i) {
-            IconImage = (Image)i.Clone();
+        public void SetIcon(Image image) {
+            if (image == null) {
+                throw new ArgumentNullException(nameof(image));
+                }
+            Image previousImage = IconImage;
+            IconImage = (Image)image.Clone();
+            previousImage?.Dispose();
             SrcRect = new Rectangle(0, 0, IconImage.Width, IconImage.Height);
-            ForceIcoIcon();
+            using (Bitmap bitmap = new Bitmap(IconImage)) {
+                IntPtr iconHandle = bitmap.GetHicon();
+                try {
+                    // Clone before releasing the temporary native HICON.
+                    Icon replacement = (Icon)Icon.FromHandle(iconHandle).Clone();
+                    Icon = replacement;
+                    ownedWindowIcon?.Dispose();
+                    ownedWindowIcon = replacement;
+                    }
+                finally {
+                    DestroyIcon(iconHandle);
+                    }
+                }
+            Invalidate();
             }
         #endregion wincontrols
 
@@ -250,6 +263,8 @@ namespace MashWin {
                 }
 
             if (m.Msg == WM_NCHITTEST) {
+                // Keep ordinary client areas interactive while preserving native caption/resize handling.
+                m.Result = (IntPtr)1; // HTCLIENT
                 Point loc = this.PointToClient(Cursor.Position);
 
                 if (loc.Y <= 26 + Settings.BorderThickness) {
@@ -318,18 +333,18 @@ namespace MashWin {
                 return path;
                 }
 
-            // top left arc  
+            // top left arc
             path.AddArc(arc, 180, 90);
 
-            // top right arc  
+            // top right arc
             arc.X = bounds.Right - diameter;
             path.AddArc(arc, 270, 90);
 
-            // bottom right arc  
+            // bottom right arc
             arc.Y = bounds.Bottom - diameter;
             path.AddArc(arc, 0, 90);
 
-            // bottom left arc 
+            // bottom left arc
             arc.X = bounds.Left;
             path.AddArc(arc, 90, 90);
 
@@ -354,10 +369,11 @@ namespace MashWin {
 
         public void DrawWindow(Graphics g, Rectangle r, int d, Pen p, int topWidth = 0) {
             if (firstDraw) {
+                AppBrushBackground?.Dispose();
                 AppBrushBackground = new SolidBrush(this.BackColor);
                 firstDraw = false;
                 if (this.Settings.Icon != null) {
-                    IconImage = this.Settings.Icon;
+                    SetIcon(this.Settings.Icon);
                     }
                 pBlankWindow(g);
                 }
@@ -373,12 +389,22 @@ namespace MashWin {
                     int rHalfBorder = (int)Math.Ceiling((float)(Settings.BorderThickness / 2));
                     int wxr = (int)Math.Ceiling((float)(width - radius * 2));
 
-                    gp.AddArc(rHalfBorder, rHalfBorder, (radius * 2) + rHalfBorder, (radius * 2) + rHalfBorder, 180, 90); // TL
-                    gp.AddArc(wxr - (Settings.BorderThickness+rHalfBorder)-1, rHalfBorder, (radius * 2) + (t + 2), (radius * 2) + (t + 2), 270, 90); // TR
-                    gp.AddArc(wxr - (Settings.BorderThickness+rHalfBorder)-1, (height - (radius * 2)) - (Settings.BorderThickness + rHalfBorder+1), (radius * 2) + (t + 2), (radius * 2) + (t + 2), 0, 90); // BR
-                    gp.AddArc(rHalfBorder, (height - (radius * 2)) - (Settings.BorderThickness+rHalfBorder+1), (radius * 2) + t + 2, (radius * 2) + t + 2, 90, 90); // BL
+                    // A square frame is valid too; AddArc rejects zero-sized arcs.
+                    if (radius <= 0) {
+                        gp.AddRectangle(new Rectangle(rHalfBorder, rHalfBorder,
+                            Math.Max(1, width - Settings.BorderThickness),
+                            Math.Max(1, height - Settings.BorderThickness)));
+                        }
+                    else {
+                        gp.AddArc(rHalfBorder, rHalfBorder, (radius * 2) + rHalfBorder, (radius * 2) + rHalfBorder, 180, 90); // TL
+                        gp.AddArc(wxr - (Settings.BorderThickness+rHalfBorder)-1, rHalfBorder, (radius * 2) + (t + 2), (radius * 2) + (t + 2), 270, 90); // TR
+                        gp.AddArc(wxr - (Settings.BorderThickness+rHalfBorder)-1, (height - (radius * 2)) - (Settings.BorderThickness + rHalfBorder+1), (radius * 2) + (t + 2), (radius * 2) + (t + 2), 0, 90); // BR
+                        gp.AddArc(rHalfBorder, (height - (radius * 2)) - (Settings.BorderThickness+rHalfBorder+1), (radius * 2) + t + 2, (radius * 2) + t + 2, 90, 90); // BL
+                        }
                     gp.CloseFigure();
 
+                    // Release the previous shape before caching a resized outline.
+                    WindowGP?.Dispose();
                     WindowGP = (GraphicsPath)gp.Clone();
                     gp.Dispose();
                     }
@@ -396,10 +422,10 @@ namespace MashWin {
             g.DrawPath(p, WindowGP);
 
             if (IconImage != null && ShowIcon) g.DrawImage(
-                IconImage, 
-                DestRect.X + (Settings.BorderThickness / 2), 
-                DestRect.Y + (Settings.BorderThickness / 2), 
-                DestRect.Width + (Settings.BorderThickness / 2), 
+                IconImage,
+                DestRect.X + (Settings.BorderThickness / 2),
+                DestRect.Y + (Settings.BorderThickness / 2),
+                DestRect.Width + (Settings.BorderThickness / 2),
                 DestRect.Height + (Settings.BorderThickness / 2)
                 );
 
@@ -422,6 +448,8 @@ namespace MashWin {
         protected override void OnPaint(PaintEventArgs e) {
             if (HasBeenResized) MoveButtons();
             if (this.BackColor != OldBackColor) {
+                // A color change replaces an owned GDI brush.
+                AppBrushBackground?.Dispose();
                 AppBrushBackground = new SolidBrush(this.BackColor);
                 OldBackColor = this.BackColor;
                 }
@@ -433,7 +461,10 @@ namespace MashWin {
 
             DrawWindow(g, this.ClientRectangle, this.Settings.CornerRadius, AppPenBorder, (int)g.MeasureString(" " + this.Text + " ", Settings.TitleFont).Width);
 
-            g.DrawString(this.Text, Settings.TitleFont, AppBrushTitle, _TitleTextRect, TitleTextAlignment);
+            // Respect the public title visibility setting when painting custom chrome.
+            if (Settings.ShowTitle) {
+                g.DrawString(this.Text, Settings.TitleFont, AppBrushTitle, _TitleTextRect, TitleTextAlignment);
+                }
             g.DrawString(Settings.StatusBarText, Settings.StatusBarFont, AppBrushTitle, _StatusTextRect, StatusTextAlignment);
             }
 
