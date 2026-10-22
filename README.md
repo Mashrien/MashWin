@@ -54,9 +54,10 @@ The original .NET Framework version remains available in Git history.
 
 ## Grouped live designer settings — 0.0.4.0
 
-The **MWin Customization** category contains five separate expandable entries:
-Frame, Caption Buttons, Title, Menu Separator, and Status Bar. Each is an actual
-group of settings, shared by the form and the public settings container:
+The **MWin Customization** category contains separate expandable entries:
+Frame, Caption Buttons, Title, Menu Separator, Status Bar, and Tool Strips
+(added in 0.0.5.0). Each is an actual group of settings, shared by the form and
+the public settings container:
 
 ```csharp
 Settings.Frame.BorderColor = Color.Red;
@@ -99,3 +100,31 @@ button.Image = myIcon;
 button.Text = "Extract";
 button.TextImageRelation = TextImageRelation.ImageAboveText;
 ```
+
+
+## ToolStrip styling — 0.0.5.0
+
+Standard toolbars, menu bars, status strips, and context menus inside `MWindow`
+share an `MToolStripRenderer`. This includes controls added through panels later,
+context menus assigned after construction, generated submenus, and overflow menus.
+The normal WinForms controls continue to provide image/text layout, clicks,
+keyboard navigation, check marks, and menu lifetime handling.
+
+The designer exposes **Tool Strips** under **MWin Customization**. Its values
+are the same objects available through the nested public API:
+
+```csharp
+Settings.ToolStrips.HoverColor = Color.LightBlue;
+Settings.ToolStrips.PressedColor = Color.CornflowerBlue;
+Settings.ToolStrips.CornerRadius = 5;
+Settings.ToolStrips.UseGradients = true;
+```
+
+Colors, borders, gradients, and rounded highlights update without resizing.
+High-contrast mode uses the standard Windows renderer. Framework drawing still
+handles item images, including disabled images; the renderer does not own them.
+
+`MToolStripRenderer` can also be assigned directly to a ToolStrip on an ordinary
+Form. In that case, the caller owns the renderer and should dispose it with the
+form. Its `Settings` property accepts a shared `ToolStripSettings` object.
+Tracked strips use weak references, and disposal detaches settings notifications.

@@ -18,6 +18,7 @@ internal static class Program {
         Check("Replacement settings detach the previous owner", CheckReplacement);
         Check("Disposed forms detach settings", CheckDisposal);
         Check("RoundButton image and text layout", CheckButtonImages);
+        Check("MWin styling reaches toolbars and menus", CheckToolStripTheme);
         Console.WriteLine("Failures: " + failures);
         return failures == 0 ? 0 : 1;
         }
@@ -41,7 +42,7 @@ internal static class Program {
 
     private static void CheckLabel() {
         PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(MWindow));
-        foreach (string name in new string[] { "Frame", "CaptionButtons", "Title", "MenuSeparator", "StatusBar" }) {
+        foreach (string name in new string[] { "Frame", "CaptionButtons", "Title", "MenuSeparator", "StatusBar", "ToolStrips" }) {
             PropertyDescriptor property = properties[name];
             Require(property != null, "Missing customization group: " + name);
             Require(TypeDescriptor.GetProperties(typeof(MWindowSettings))[name] != null,
@@ -52,7 +53,7 @@ internal static class Program {
         Require(properties["CaptionButtons"].DisplayName == "Caption Buttons", "Caption group label is incorrect");
         Require(!properties["ExtendedSettings"].IsBrowsable, "Old flat settings are still displayed");
         using (MWindow window = new MWindow()) {
-            foreach (string name in new string[] { "Frame", "CaptionButtons", "Title", "MenuSeparator", "StatusBar" }) {
+            foreach (string name in new string[] { "Frame", "CaptionButtons", "Title", "MenuSeparator", "StatusBar", "ToolStrips" }) {
                 object designerGroup = properties[name].GetValue(window);
                 object publicGroup = TypeDescriptor.GetProperties(window.Settings)[name].GetValue(window.Settings);
                 Require(ReferenceEquals(designerGroup, publicGroup), "Designer and Settings." + name + " use different objects");
@@ -303,6 +304,87 @@ internal static class Program {
                     }
                 }
             Require(icon.GetPixel(0, 0).ToArgb() == Color.Red.ToArgb(), "Button disposed the caller's image");
+            }
+        }
+
+    private static void CheckToolStripTheme() {
+        using (MWindow window = CreateWindow()) {
+            PropertyDescriptor groupProperty = TypeDescriptor.GetProperties(window.Settings)["ToolStrips"];
+            Require(groupProperty != null, "Settings.ToolStrips is missing");
+            using (Panel panel = new Panel()) {
+                panel.Dock = DockStyle.Fill;
+                ToolStrip toolbar = new ToolStrip();
+                ToolStripButton button = new ToolStripButton("Extract");
+                toolbar.Items.Add(button);
+                panel.Controls.Add(toolbar);
+                window.Controls.Add(panel);
+                MenuStrip menu = new MenuStrip();
+                ToolStripMenuItem archive = new ToolStripMenuItem("Archive");
+                archive.DropDownItems.Add("Extract");
+                menu.Items.Add(archive);
+                window.Controls.Add(menu);
+                using (ContextMenuStrip context = new ContextMenuStrip()) {
+                    context.Items.Add("Extract");
+                    panel.ContextMenuStrip = context;
+                    ToolStripRenderer renderer = toolbar.Renderer;
+                    Require(renderer.GetType().FullName == "MashWin.MToolStripRenderer", "Toolbar did not receive the MWin renderer");
+                    Require(ReferenceEquals(menu.Renderer, renderer), "Menu bar uses a different renderer");
+                    Require(ReferenceEquals(context.Renderer, renderer), "Late-assigned context menu was not themed");
+                    archive.ShowDropDown();
+                    Application.DoEvents();
+                    Require(ReferenceEquals(archive.DropDown.Renderer, renderer), "Submenu did not inherit the renderer");
+                    archive.HideDropDown();
+
+                    object settings = groupProperty.GetValue(window.Settings);
+                    PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(settings);
+                    properties["BackgroundColor"].SetValue(settings, Color.Beige);
+                    properties["HoverColor"].SetValue(settings, Color.LightBlue);
+                    properties["CheckedColor"].SetValue(settings, Color.LightGreen);
+                    properties["UseGradients"].SetValue(settings, false);
+                    using (Bitmap bitmap = new Bitmap(100, 50)) {
+                        using (Graphics graphics = Graphics.FromImage(bitmap)) {
+                            renderer.DrawToolStripBackground(new ToolStripRenderEventArgs(graphics, toolbar));
+                            Require(bitmap.GetPixel(Math.Min(50, toolbar.Width - 1), toolbar.Height / 2).ToArgb() == Color.Beige.ToArgb(), "Toolbar background ignored theme settings");
+                            button.Select();
+                            Require(button.Selected, "Test could not select the toolbar button");
+                            renderer.DrawButtonBackground(new ToolStripItemRenderEventArgs(graphics, button));
+                            Require(bitmap.GetPixel(button.Width / 2, button.Height / 2).ToArgb() == Color.LightBlue.ToArgb(),
+                                "Selected toolbar button did not use the hover color");
+                            }
+                        }
+                    properties["BorderThickness"].SetValue(settings, 3);
+                    using (Bitmap bitmap = new Bitmap(toolbar.Width, toolbar.Height)) {
+                        using (Graphics graphics = Graphics.FromImage(bitmap)) {
+                            graphics.Clear(Color.White);
+                            renderer.DrawToolStripBorder(new ToolStripRenderEventArgs(graphics, toolbar));
+                            Require(bitmap.GetPixel(toolbar.Width / 2, toolbar.Height - 3).ToArgb() == Color.Gray.ToArgb(),
+                                "Toolbar border ignored its configured thickness");
+                            Require(bitmap.GetPixel(toolbar.Width / 2, toolbar.Height - 4).ToArgb() == Color.White.ToArgb(),
+                                "Toolbar border exceeded its configured thickness");
+                            }
+                        }
+                    properties["BorderThickness"].SetValue(settings, 1);
+                    button.Checked = true;
+                    button.Enabled = false;
+                    using (Bitmap bitmap = new Bitmap(100, 50)) {
+                        using (Graphics graphics = Graphics.FromImage(bitmap)) {
+                            renderer.DrawButtonBackground(new ToolStripItemRenderEventArgs(graphics, button));
+                            Require(bitmap.GetPixel(button.Width / 2, button.Height / 2).ToArgb() == Color.LightGreen.ToArgb(),
+                                "Disabled checked button lost its checked state");
+                            }
+                        }
+                    button.Enabled = true;
+                    button.Checked = false;
+                    int clicks = 0;
+                    button.Click += delegate { clicks++; };
+                    button.PerformClick();
+                    Require(clicks == 1, "Themed button lost its click behavior");
+                    int invalidations = 0;
+                    toolbar.Invalidated += delegate { invalidations++; };
+                    properties["BorderColor"].SetValue(settings, Color.Purple);
+                    Require(invalidations > 0, "Nested theme edit did not repaint the toolbar");
+                    }
+                }
             }
         }
 

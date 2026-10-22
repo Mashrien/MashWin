@@ -152,6 +152,7 @@ namespace MashWin {
                 this.Controls.Add(rbMinimize);
                 }
 
+            StartToolStripStyling();
             settings.PropertyChanged += SettingsChanged;
             ApplySettings();
             }
@@ -279,6 +280,15 @@ namespace MashWin {
                 }
             }
 
+        [Category("MWin Customization")]
+        [DisplayName("Tool Strips")]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
+        public ToolStripSettings ToolStrips {
+            get {
+                return settings.ToolStrips;
+                }
+            }
+
         // The public container shares the same groups as the designer entries.
         // Only those entries serialize, avoiding duplicate assignments.
         [Browsable(false)]
@@ -344,6 +354,9 @@ namespace MashWin {
             // Shape and alignment used to refresh only on resize. Nested property
             // changes must also discard those cached values and update drawing pens.
             HasBeenResized = true;
+            if (toolStripRenderer != null) {
+                toolStripRenderer.Settings = settings.ToolStrips;
+                }
             AppPenBorder.Color = settings.Frame.BorderColor;
             AppPenBorder.Width = settings.Frame.BorderThickness;
             AppPenSeparator.Color = settings.MenuSeparator.Color;

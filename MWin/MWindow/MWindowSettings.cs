@@ -38,6 +38,7 @@ namespace MashWin {
             Title.PropertyChanged += GroupChanged;
             MenuSeparator.PropertyChanged += GroupChanged;
             StatusBar.PropertyChanged += GroupChanged;
+            ToolStrips.PropertyChanged += GroupChanged;
             }
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
@@ -54,6 +55,9 @@ namespace MashWin {
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
         public StatusBarSettings StatusBar { get; } = new StatusBarSettings();
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
+        public ToolStripSettings ToolStrips { get; } = new ToolStripSettings();
 
         // Preserve the group in notifications so the form can recognize Title.Icon
         // separately from ordinary frame, caption, and text updates.
@@ -73,6 +77,9 @@ namespace MashWin {
                 }
             else if (ReferenceEquals(sender, StatusBar)) {
                 groupName = nameof(StatusBar);
+                }
+            else if (ReferenceEquals(sender, ToolStrips)) {
+                groupName = nameof(ToolStrips);
                 }
             else {
                 return;
