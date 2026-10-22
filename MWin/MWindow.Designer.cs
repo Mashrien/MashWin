@@ -16,8 +16,6 @@ namespace MashWin {
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        public MWindowSettings Settings = new MWindowSettings();
-
         private RoundButton rbExit;
         private RoundButton rbMaximize;
         private RoundButton rbMinimize;
@@ -31,6 +29,8 @@ namespace MashWin {
                 components.Dispose();
                 }
             if (disposing) {
+                // A retained settings instance must not keep a disposed form alive.
+                settings.PropertyChanged -= SettingsChanged;
                 // .NET port: release only drawing objects owned by this form.
                 IconImage?.Dispose();
                 ownedWindowIcon?.Dispose();

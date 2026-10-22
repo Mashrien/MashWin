@@ -10,6 +10,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Update="MWindow/RoundButton.Content.cs"><DependentUpon>RoundButton.cs</DependentUpon></Compile>
     <Compile Update="MWindow.cs"><SubType>Form</SubType></Compile>
     <Compile Update="MWindow.Designer.cs"><DependentUpon>MWindow.cs</DependentUpon></Compile>
     <EmbeddedResource Update="MWindow.resx"><DependentUpon>MWindow.cs</DependentUpon></EmbeddedResource>

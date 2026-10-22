@@ -153,7 +153,7 @@ namespace MashWin {
 
     //----------------------------------------------------------------------------------------------------------
     [DefaultPropertyAttribute("ExtendedSettings")]
-    public class RoundButton : Button {
+    public partial class RoundButton : Button {
         ExtendedButtonSettings Settings = new ExtendedButtonSettings();
 
         //private Region ControlRegion;
@@ -227,8 +227,8 @@ namespace MashWin {
                 base.OnPaint(e);
                 return;
                 }
-            this.Settings.BorderColor = ((MWindow)this.Parent).ExtendedSettings.BorderColor;
-            this.Settings.BorderThickness = ((MWindow)this.Parent).ExtendedSettings.BorderThickness;
+            this.Settings.BorderColor = ((MWindow)this.Parent).Settings.Frame.BorderColor;
+            this.Settings.BorderThickness = ((MWindow)this.Parent).Settings.Frame.BorderThickness;
             BorderPen.Color = this.Settings.BorderColor;
 
             if (BackColor != ((MWindow)Parent).BackColor) {
@@ -281,16 +281,6 @@ namespace MashWin {
             e.Graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
             //e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-            SizeF stringSize = e.Graphics.MeasureString(this.Text, this.Font);
-            PointF stringPosition = new PointF();
-            if (stringSize.Width > this.Width) {
-                stringPosition.X = 0;
-                }
-            else {
-                stringPosition.X = (this.Width - stringSize.Width) / 2;
-                }
-            stringPosition.Y = (this.Height - stringSize.Height) / 2;
-
             if (isMouseOver) {
                 if (Settings.VistaStyleGradientBackground) {
                     using (GraphicsPath gp = new GraphicsPath()) {
@@ -327,22 +317,12 @@ namespace MashWin {
                 else {
                     e.Graphics.DrawRoundedRectangle(Settings.MouseDownBackColor, r, Settings.CornerRadius, this.Settings.RoundCorners, BorderPen);
                     }
-                stringPosition.X += 1;
-                stringPosition.Y += 1;
                 }
 
             e.Graphics.DrawRoundedRectangle(Settings.BorderColor, r, Settings.CornerRadius, this.Settings.RoundCorners, BorderPen, null, true);
 
-            if (this.UseCompatibleTextRendering)
-                stringPosition.Y += 2;
-
-            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit; //System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-            if (isMouseDown && Settings.InvertForeColorOnMouseDown) {
-                e.Graphics.DrawString(this.Text, this.Font, TextInvertedColor, stringPosition);
-                }
-            else {
-                e.Graphics.DrawString(this.Text, this.Font, TextColor, stringPosition);
-                }
+            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit;
+            DrawContent(e.Graphics);
 
             e.Graphics.Flush();
             return;

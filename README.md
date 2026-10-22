@@ -2,7 +2,7 @@
 
  Subclass of a Form for custom theme'ing and design, has a great many customization options.
  
- In the designer, under properties, is a new category of settings called "ExtendedSettings"- These allow for near infinite customization of the forms
+ In the designer, under properties, is a new category of settings called "MWin Customization"- These allow for near infinite customization of the forms
  
  WndProc is also intercepted and OS calls are passed/handled so that dragging/resizing are handled via the OS and .NET, rather than the slow/clunky manual resizing methods.. Meaning the forms are fast and responsive, with no noticable performance impact over a native window
  
@@ -33,8 +33,8 @@ Build outputs default to `artifacts/` outside the source files; an embedding
 project can supply `MNXBuildRoot` to share its build output directory.
 
 Derive your form from `MashWin.MWindow`, build once, and open your derived form
-in the WinForms designer. `ExtendedSettings` remains expandable and serializable.
-The default property metadata now matches the actual property values.
+in the WinForms designer. The current settings groups are described below.
+The default property metadata matches the actual property values.
 
 Changes in this port are commented in the source:
 
@@ -50,3 +50,52 @@ Changes in this port are commented in the source:
 - Unhandled client hit tests return HTCLIENT so normal control interaction works.
 
 The original .NET Framework version remains available in Git history.
+
+
+## Grouped live designer settings — 0.0.4.0
+
+The **MWin Customization** category contains five separate expandable entries:
+Frame, Caption Buttons, Title, Menu Separator, and Status Bar. Each is an actual
+group of settings, shared by the form and the public settings container:
+
+```csharp
+Settings.Frame.BorderColor = Color.Red;
+Settings.Frame.CornerRadius = 10;
+Settings.CaptionButtons.MaximizeBox = false;
+Settings.Title.Alignment = MashWin.Alignment.Center;
+Settings.MenuSeparator.Color = Color.DarkGray;
+Settings.StatusBar.Text = "Ready";
+```
+
+Flat paths such as `ExtendedSettings.BorderColor` have moved to their groups.
+The hidden `ExtendedSettings` container alias remains available, but its members
+are grouped too. New designer code uses the shorter `Frame.BorderColor` form;
+it changes the same value as `Settings.Frame.BorderColor`.
+
+Nested settings publish `INotifyPropertyChanged` notifications, including their
+group name (for example `Frame.BorderColor`). The form updates its drawing pens,
+outline, icon, text alignment, and caption buttons without requiring a resize.
+Replacing the settings detaches the old subscription; disposing the form detaches
+the current subscription too.
+
+To run the Windows regression checks (no test framework packages required):
+
+```sh
+dotnet run --project tests/SettingsChecks/SettingsChecks.csproj -c Release
+```
+
+The checks use the same nested property descriptors as the property grid and
+verify rendered output, caption visibility, labels, and settings subscriptions.
+
+
+`RoundButton` now paints `Image` (including `ImageList` selections) together with
+text. It honors `ImageAlign`, `TextAlign`, `TextImageRelation`, padding, disabled
+appearance, and right-to-left ordering, and clips oversized content to the padded
+area. Caller-supplied images remain caller-owned. Image and text painting lives
+in the commented `RoundButton.Content.cs` partial file.
+
+```csharp
+button.Image = myIcon;
+button.Text = "Extract";
+button.TextImageRelation = TextImageRelation.ImageAboveText;
+```
