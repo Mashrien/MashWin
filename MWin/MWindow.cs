@@ -99,7 +99,9 @@ namespace MashWin {
                 rbExit.Width = 30;
                 rbExit.Name = "rbExit";
                 rbExit.Text = "X";
-                rbExit.UseCompatibleTextRendering = true;
+                // DrawContent now honors TextAlign; the legacy default was BottomRight.
+                rbExit.TextAlign = ContentAlignment.MiddleCenter;
+                rbExit.UseCompatibleTextRendering = false;
                 if (MinimizeBox || MaximizeBox) {
                     rbExit.ExtendedSettings.RoundCorners = ExtendedButtonSettings.RoundedCorners.BottomRight;
                     } else {
@@ -119,6 +121,10 @@ namespace MashWin {
                 rbMaximize.Width = 30;
                 rbMaximize.Name = "rbMaximize";
                 rbMaximize.Text = "□";
+                rbMaximize.TextAlign = ContentAlignment.MiddleCenter;
+                // This font's square sits below its line box center. Balance the
+                // visible glyph, rather than the font's unused ascent/descent.
+                rbMaximize.TextDrawingOffset = new Point(0, -3);
                 rbMaximize.ForeColor = Color.LightSlateGray;
                 rbMaximize.Font = new Font(rbMaximize.Font.FontFamily, 14f);
                 rbMaximize.ExtendedSettings.MouseDownBackColor = Color.CornflowerBlue;
@@ -141,6 +147,7 @@ namespace MashWin {
                 rbMinimize.ExtendedSettings.MouseDownBackColor = Color.CornflowerBlue;
                 rbMinimize.ExtendedSettings.MouseDownBackColorAlt = Color.Black;
                 rbMinimize.Text = "__";
+                rbMinimize.TextAlign = ContentAlignment.BottomCenter;
                 rbMinimize.ForeColor = Color.LightSlateGray;
                 //rbMinimize.ExtendedSettings.RoundCorners = ExtendedButtonSettings.RoundedCorners.BottomLeft;
                 if (Settings.CaptionButtons.ExitBox || MaximizeBox) {

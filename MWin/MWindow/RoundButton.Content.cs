@@ -6,6 +6,10 @@ using System.Windows.Forms;
 
 namespace MashWin {
     public partial class RoundButton {
+        // Caption glyphs can need an optical correction without shrinking the
+        // clipping rectangle (Padding would cut the square's lower edge off).
+        internal Point TextDrawingOffset;
+
         // ButtonBase already resolves ImageList/ImageIndex/ImageKey through Image.
         // Custom painting must draw that image explicitly and leave its ownership
         // with the caller (or ImageList), just as an ordinary WinForms Button does.
@@ -41,7 +45,9 @@ namespace MashWin {
                     }
 
                 if (Text.Length > 0 && textArea.Width > 0 && textArea.Height > 0) {
-                    textArea.Offset(pressedOffset, pressedOffset);
+                    textArea.Offset(pressedOffset + (int)Math.Round(TextDrawingOffset.X * DeviceDpi / 96.0),
+                        pressedOffset + (int)Math.Round(TextDrawingOffset.Y * DeviceDpi / 96.0)
+                        );
                     if (UseCompatibleTextRendering) {
                         textArea.Offset(0, 2);
                         }

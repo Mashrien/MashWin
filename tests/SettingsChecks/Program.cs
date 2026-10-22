@@ -15,6 +15,7 @@ internal static class Program {
         Check("Every setting notifies its owner", CheckNotifications);
         Check("Nested edits repaint without resizing", CheckRepaint);
         Check("Caption visibility changes immediately", CheckCaption);
+        Check("Caption glyphs remain centered", CheckCaptionAlignment);
         Check("Replacement settings detach the previous owner", CheckReplacement);
         Check("Disposed forms detach settings", CheckDisposal);
         Check("RoundButton image and text layout", CheckButtonImages);
@@ -169,6 +170,45 @@ internal static class Program {
             Require(!maximize.Visible, "Maximize caption stayed visible");
             window.Settings.CaptionButtons.MaximizeBox = true;
             Require(maximize.Visible, "Maximize caption did not return");
+            }
+        }
+
+    private static void CheckCaptionAlignment() {
+        using (MWindow window = CreateWindow()) {
+            foreach (string name in new string[] { "rbExit", "rbMaximize", "rbMinimize" }) {
+                RoundButton button = (RoundButton)window.Controls[name];
+                button.ForeColor = Color.Magenta;
+                button.ExtendedSettings.VistaStyleGradientBackground = false;
+                button.ExtendedSettings.BackgroundColor = Color.Black;
+                button.ExtendedSettings.BackgroundColorAlt = Color.Black;
+                button.ExtendedSettings.BorderColor = Color.Black;
+                button.isMouseOver = false;
+                button.isMouseDown = false;
+                using (Bitmap bitmap = new Bitmap(button.Width, button.Height)) {
+                    button.DrawToBitmap(bitmap, button.ClientRectangle);
+                    Rectangle glyph = ColoredBounds(bitmap, Color.Magenta);
+                    Require(!glyph.IsEmpty, name + " has no visible glyph");
+                    Console.WriteLine(name + " glyph=" + glyph + " button=" + button.ClientSize);
+                    Require(Math.Abs(glyph.Left + glyph.Width / 2.0 - button.Width / 2.0) <= 2,
+                        name + " glyph is not horizontally centered");
+                    if (name == "rbMinimize") {
+                        Require(glyph.Top >= button.Height / 2 && glyph.Bottom <= button.Height - 2,
+                            "Minimize line must sit low in the button without clipping");
+                        }
+                    else {
+                        if (name == "rbMaximize") {
+                            Require(glyph.Width == glyph.Height, "Maximize square was clipped");
+                            }
+                        Require(Math.Abs(glyph.Top + glyph.Height / 2.0 - button.Height / 2.0) <= 2,
+                            name + " glyph is not vertically centered");
+                        }
+                    string evidence = Environment.GetEnvironmentVariable("MWIN_CAPTION_EVIDENCE");
+                    if (!string.IsNullOrEmpty(evidence)) {
+                        System.IO.Directory.CreateDirectory(evidence);
+                        bitmap.Save(System.IO.Path.Combine(evidence, name + ".png"));
+                        }
+                    }
+                }
             }
         }
 

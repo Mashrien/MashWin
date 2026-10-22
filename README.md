@@ -128,3 +128,10 @@ handles item images, including disabled images; the renderer does not own them.
 Form. In that case, the caller owns the renderer and should dispose it with the
 form. Its `Settings` property accepts a shared `ToolStripSettings` object.
 Tracked strips use weak references, and disposal detaches settings notifications.
+
+## Caption alignment repair — 0.0.6.0
+
+Caption buttons explicitly center their symbols now that RoundButton honors
+TextAlign. Minimize remains low and horizontally centered. The maximize square
+has a small DPI-scaled optical correction that preserves the full clipping area.
+The Windows bitmap checks cover centering and the square's unclipped shape.
