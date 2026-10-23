@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using MashWin;
 
@@ -15,6 +16,7 @@ internal static class Program {
         Check("Every setting notifies its owner", CheckNotifications);
         Check("Nested edits repaint without resizing", CheckRepaint);
         Check("Caption visibility changes immediately", CheckCaption);
+        Check("Owned status panel protects borders and the resize corner", CheckStatusHost);
         Check("Caption glyphs remain centered", CheckCaptionAlignment);
         Check("Replacement settings detach the previous owner", CheckReplacement);
         Check("Disposed forms detach settings", CheckDisposal);
@@ -163,6 +165,54 @@ internal static class Program {
             }
         }
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr first, IntPtr second);
+
+    private static void CheckStatusHost() {
+        using (MWindow window = CreateWindow()) {
+            System.Reflection.PropertyInfo hostProperty = typeof(MWindow).GetProperty("StatusBarControls");
+            Require(hostProperty != null, "MWin has no owned status panel");
+            Panel host = (Panel)hostProperty.GetValue(window);
+            Require(host.Parent == window, "Status panel is not owned by MWin");
+            window.Settings.Frame.BorderThickness = 5;
+            window.Settings.Frame.ShowSizeGrip = true;
+            Application.DoEvents();
+            Point corner = new Point(window.ClientSize.Width - 5, window.ClientSize.Height - 5);
+            Require(!host.Bounds.Contains(corner), "Status controls cover the native resize corner");
+            Require(window.GetChildAtPoint(corner) == null, "A child control intercepts the resize corner");
+            Point screenCorner = window.PointToScreen(corner);
+            long coordinates = ((long)(ushort)screenCorner.Y << 16) | (ushort)screenCorner.X;
+            Require(SendMessage(window.Handle, 0x0084, IntPtr.Zero, new IntPtr(coordinates)).ToInt32() == 17,
+                "The exposed resize corner no longer returns HTBOTTOMRIGHT");
+            window.StatusBar.Height = 36;
+            window.StatusBar.HorizontalPadding = 7;
+            Require(host.Height == 36 && window.StatusBarStrip.Padding.Left == 7,
+                "Status size and padding did not update immediately");
+            window.StatusText.Text = "Progress text";
+            Require(window.Settings.StatusBar.Text == "Progress text", "Status text is not synchronized with settings");
+            window.StatusBar.Visible = false;
+            Require(!host.Visible, "StatusBar.Visible did not hide the owned panel");
+            window.StatusBar.Visible = true;
+            using (Panel fill = new Panel()) {
+                fill.Dock = DockStyle.Fill;
+                window.Controls.Add(fill);
+                window.PerformLayout();
+                Require(fill.Top > 30 && fill.Bottom <= host.Top, "Docked content covers the title divider or status region");
+                using (Bitmap bitmap = Capture(window)) {
+                    Require(bitmap.GetPixel(100, 31).ToArgb() == window.Settings.Frame.BorderColor.ToArgb(),
+                        "Docked content covers the thick title divider");
+                    }
+                }
+            using (ProgressBar progress = new ProgressBar()) {
+                progress.Dock = DockStyle.Right;
+                progress.Width = 100;
+                host.Controls.Add(progress);
+                window.PerformLayout();
+                Require(progress.Parent == host, "Status controls cannot own a standard progress control");
+                }
+            }
+        }
+
     private static void CheckCaption() {
         using (MWindow window = CreateWindow()) {
             Control maximize = window.Controls["rbMaximize"];
@@ -259,6 +309,12 @@ internal static class Program {
         }
 
     private static void CheckButtonImages() {
+        using (RoundButton centeredButton = new RoundButton()) {
+            centeredButton.TextAlign = ContentAlignment.MiddleCenter;
+            PropertyDescriptor alignment = TypeDescriptor.GetProperties(centeredButton)["TextAlign"];
+            Require(alignment.ShouldSerializeValue(centeredButton), "VS would discard centered text alignment on save");
+            }
+
         using (Bitmap icon = new Bitmap(16, 16)) {
             using (Graphics graphics = Graphics.FromImage(icon)) {
                 graphics.Clear(Color.Red);

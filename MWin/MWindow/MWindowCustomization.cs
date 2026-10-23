@@ -21,6 +21,15 @@ namespace MashWin {
 
     public sealed class FrameSettings : CustomizationGroup {
         private bool resizable = true;
+        private bool showChrome = true;
+
+        [DefaultValue(true)]
+        [NotifyParentProperty(true)]
+        public bool ShowChrome {
+            get { return showChrome; }
+            set { SetValue(ref showChrome, value); }
+            }
+
         private Color borderColor = Color.Gray;
         private int borderThickness = 1;
         private int cornerRadius = 5;
@@ -246,6 +255,31 @@ namespace MashWin {
         private string text = "";
         private Alignment alignment = Alignment.Left;
         private bool showSeparator = false;
+        private bool visible = true;
+        private int height = 24;
+        private int horizontalPadding = 4;
+
+        [DefaultValue(true)]
+        [NotifyParentProperty(true)]
+        public bool Visible {
+            get { return visible; }
+            set { SetValue(ref visible, value); }
+            }
+
+        [DefaultValue(24)]
+        [NotifyParentProperty(true)]
+        public int Height {
+            get { return height; }
+            set { SetValue(ref height, Math.Max(18, Math.Min(256, value))); }
+            }
+
+        [DefaultValue(4)]
+        [NotifyParentProperty(true)]
+        public int HorizontalPadding {
+            get { return horizontalPadding; }
+            set { SetValue(ref horizontalPadding, Math.Max(0, Math.Min(64, value))); }
+            }
+
 
         [Browsable(true)]
         [NotifyParentProperty(true)]

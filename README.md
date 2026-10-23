@@ -135,3 +135,36 @@ Caption buttons explicitly center their symbols now that RoundButton honors
 TextAlign. Minimize remains low and horizontally centered. The maximize square
 has a small DPI-scaled optical correction that preserves the full clipping area.
 The Windows bitmap checks cover centering and the square's unclipped shape.
+
+## Owned status controls and content layout — 0.0.7.0
+
+`MWindow` now owns a `StatusBarControls` panel and a themed `StatusBarStrip` inside
+it when requested. Add progress bars or labels to the strip, or add ordinary controls to the panel.
+The panel is exposed under **MWin Customization**, and its inherited protected
+field allows editing derived forms in the Visual Studio designer.
+
+```csharp
+StatusBar.Height = 28;
+StatusBar.HorizontalPadding = 6;
+StatusBar.Text = "Working…";
+StatusBarStrip.Items.Add(new ToolStripProgressBar());
+```
+
+`StatusText` is the strip's default spring label. Updating its text also updates
+`Settings.StatusBar.Text`. Status text changes avoid rebuilding the frame.
+`Settings.StatusBar.Visible = false` hides the status region. Borders and the
+native resize corner stay clear of hosted controls; a resizable form reserves its
+corner even when the diagonal size-grip hint is disabled.
+
+Docked form controls use the area inside the frame, below the title divider and
+above the status region. The divider's thickness follows `Frame.BorderThickness`.
+`Settings.Frame.ShowChrome = false` disables this custom chrome and reserved layout
+for borderless tooltip windows. Standard `ControlBox`, `MinimizeBox` and
+`MaximizeBox` settings also govern the custom caption buttons.
+
+Derived forms can instead create a normal designer-owned strip, add it to the
+inherited `statusBarControls` panel in `InitializeComponent`, and call
+`SetStatusBar(myStrip, myStatusLabel)` after initialization. This transfers
+ownership to MWin and connects live status settings without designer aliases.
+RoundButton's TextAlign default metadata now matches its constructor, preserving
+explicit centered alignment when the Visual Studio designer saves the form.

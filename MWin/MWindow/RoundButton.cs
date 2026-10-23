@@ -189,6 +189,13 @@ namespace MashWin {
         [Browsable(false)]
         public bool isMoveOffDown = false;
 
+        // Match the constructor default so VS preserves explicit centered text.
+        [DefaultValue(ContentAlignment.BottomRight)]
+        public override ContentAlignment TextAlign {
+            get { return base.TextAlign; }
+            set { base.TextAlign = value; }
+            }
+
         public RoundButton() {
             BorderPen = ownedBorderPen;
             this.MouseLeave += RoundButton_MouseLeave;

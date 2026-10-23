@@ -159,6 +159,7 @@ namespace MashWin {
                 this.Controls.Add(rbMinimize);
                 }
 
+            InitializeStatusBar();
             StartToolStripStyling();
             settings.PropertyChanged += SettingsChanged;
             ApplySettings();
@@ -170,7 +171,7 @@ namespace MashWin {
 
             // Keep caption visibility reversible when Settings.CaptionButtons is edited.
             if (rbExit != null) {
-                rbExit.Visible = Settings.CaptionButtons.ExitBox;
+                rbExit.Visible = Settings.Frame.ShowChrome && ControlBox && Settings.CaptionButtons.ExitBox;
                 rbExit.Top = Settings.Frame.BorderThickness - 1;
                 rbExit.Left = Width - (Settings.Frame.CornerRadius + Settings.Frame.BorderThickness) - 30;
                 rbExit.ExtendedSettings.RoundCorners = Settings.CaptionButtons.MaximizeBox || Settings.CaptionButtons.MinimizeBox
@@ -178,12 +179,12 @@ namespace MashWin {
                     : ExtendedButtonSettings.RoundedCorners.Bottom;
                 }
             if (rbMaximize != null) {
-                rbMaximize.Visible = Settings.CaptionButtons.MaximizeBox;
+                rbMaximize.Visible = Settings.Frame.ShowChrome && ControlBox && MaximizeBox && Settings.CaptionButtons.MaximizeBox;
                 rbMaximize.Top = Settings.Frame.BorderThickness - 1;
                 rbMaximize.Left = Width - (Settings.Frame.CornerRadius + Settings.Frame.BorderThickness) - 59;
                 }
             if (rbMinimize != null) {
-                rbMinimize.Visible = Settings.CaptionButtons.MinimizeBox;
+                rbMinimize.Visible = Settings.Frame.ShowChrome && ControlBox && MinimizeBox && Settings.CaptionButtons.MinimizeBox;
                 rbMinimize.Top = Settings.Frame.BorderThickness - 1;
                 int leftOffset = Settings.CaptionButtons.MaximizeBox ? 88 : 59;
                 rbMinimize.Left = Width - (Settings.Frame.CornerRadius + Settings.Frame.BorderThickness) - leftOffset;
@@ -337,6 +338,10 @@ namespace MashWin {
             if (arguments.PropertyName == "Title.Icon") {
                 UpdateSettingsIcon();
                 }
+            if (arguments.PropertyName == "StatusBar.Text") {
+                ApplyStatusBarSettings();
+                return;
+                }
             ApplySettings();
             }
 
@@ -376,7 +381,9 @@ namespace MashWin {
                 Math.Max(1, 26 - settings.Frame.BorderThickness),
                 Math.Max(1, 26 - settings.Frame.BorderThickness)
                 );
+            ApplyStatusBarSettings();
             MoveButtons();
+            PerformLayout();
             Invalidate(true);
             }
         #endregion properties
@@ -398,10 +405,14 @@ namespace MashWin {
                 return;
                 }
 
-            if (m.Msg == WM_NCHITTEST) {
+            if (m.Msg == WM_NCHITTEST && Settings.Frame.ShowChrome) {
                 // Keep ordinary client areas interactive while preserving native caption/resize handling.
                 m.Result = (IntPtr)1; // HTCLIENT
-                Point loc = this.PointToClient(Cursor.Position);
+                // WM_NCHITTEST supplies screen coordinates, including negative
+                // monitor positions. Do not sample an unrelated current cursor.
+                long coordinates = m.LParam.ToInt64();
+                Point loc = PointToClient(new Point(unchecked((short)coordinates),
+                    unchecked((short)(coordinates >> 16))));
 
                 if (loc.Y <= 26 + Settings.Frame.BorderThickness) {
                     m.Result = (IntPtr)2;
@@ -572,16 +583,22 @@ namespace MashWin {
                 }
 
             if (Settings.MenuSeparator.Enabled) g.DrawLine(AppPenSeparator, 1, 52 + t, this.Width - 1, 52 + t);
-            if (Settings.StatusBar.ShowSeparator) g.DrawLine(AppPenSeparator, 1, this.Height - 24 - t, this.Width - 1, this.Height - 24 - t);
+            if (Settings.StatusBar.Visible && Settings.StatusBar.ShowSeparator) {
+                g.DrawLine(AppPenSeparator, 1, this.Height - Settings.StatusBar.Height - t, this.Width - 1, this.Height - Settings.StatusBar.Height - t);
+                }
 
             // title separator
-            g.DrawLine(AppPenBorder, 1, 26 + t + Settings.MenuSeparator.Thickness, this.Width - 1, 26 + t + Settings.MenuSeparator.Thickness);
+            g.DrawLine(AppPenBorder, 1, TitleDividerY, this.Width - 1, TitleDividerY);
 
 
             }
 
         //TODO moving things around and optimizing a bit here so we aren't creating a boatload of objects on each paint event, wasting cycles
         protected override void OnPaint(PaintEventArgs e) {
+            if (!Settings.Frame.ShowChrome) {
+                base.OnPaint(e);
+                return;
+                }
             if (HasBeenResized) MoveButtons();
             if (this.BackColor != OldBackColor) {
                 // A color change replaces an owned GDI brush.
@@ -601,7 +618,9 @@ namespace MashWin {
             if (Settings.Title.ShowTitle) {
                 g.DrawString(this.Text, Settings.Title.Font, AppBrushTitle, _TitleTextRect, TitleTextAlignment);
                 }
-            g.DrawString(Settings.StatusBar.Text, Settings.StatusBar.Font, AppBrushTitle, _StatusTextRect, StatusTextAlignment);
+            // StatusText lives in the owned status strip; painting it here too
+            // would duplicate text beneath hosted progress/items.
+
             }
 
         protected internal void pUpdateAlignment() {
